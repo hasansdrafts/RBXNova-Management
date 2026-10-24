@@ -5,6 +5,7 @@ import storeSaleStats from './modules/store_salestats.js';
 import storeReviewStats from './modules/store_reviewstats.js';
 import storeHandlerBoard from './modules/store_handlerboard.js';
 import storeVouch from './modules/store_vouch.js';
+import storeVoid from './modules/store_void.js';
 
 // All store tools live under one /store command because Discord allows at most
 // 100 global slash commands and the bot is at that limit.
@@ -14,6 +15,9 @@ const HANDLERS = {
     reviews: storeReviewStats,
     leaderboard: storeHandlerBoard,
     vouch: storeVouch,
+    'void-sale': storeVoid,
+    'void-review': storeVoid,
+    'void-vouch': storeVoid,
 };
 
 export default {
@@ -104,6 +108,63 @@ export default {
                         .setRequired(true)
                         .setMinLength(3)
                         .setMaxLength(300),
+                ),
+        )
+        .addSubcommand((sub) =>
+            sub
+                .setName('void-sale')
+                .setDescription('Staff only: void a logged sale.')
+                .addIntegerOption((option) =>
+                    option
+                        .setName('sale_id')
+                        .setDescription('The sale number shown in the sales log (e.g. 12)')
+                        .setRequired(true)
+                        .setMinValue(1),
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName('reason')
+                        .setDescription('Why it is being voided (optional)')
+                        .setRequired(false)
+                        .setMaxLength(200),
+                ),
+        )
+        .addSubcommand((sub) =>
+            sub
+                .setName('void-review')
+                .setDescription('Staff only: void a posted review.')
+                .addIntegerOption((option) =>
+                    option
+                        .setName('ticket_id')
+                        .setDescription('The ticket number of the review')
+                        .setRequired(true)
+                        .setMinValue(1),
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName('reason')
+                        .setDescription('Why it is being voided (optional)')
+                        .setRequired(false)
+                        .setMaxLength(200),
+                ),
+        )
+        .addSubcommand((sub) =>
+            sub
+                .setName('void-vouch')
+                .setDescription('Staff only: void a posted vouch.')
+                .addIntegerOption((option) =>
+                    option
+                        .setName('vouch_id')
+                        .setDescription('The vouch number shown in its title (e.g. 5)')
+                        .setRequired(true)
+                        .setMinValue(1),
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName('reason')
+                        .setDescription('Why it is being voided (optional)')
+                        .setRequired(false)
+                        .setMaxLength(200),
                 ),
         ),
     category: 'Community',

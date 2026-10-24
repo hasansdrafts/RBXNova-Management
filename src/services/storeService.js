@@ -7,6 +7,7 @@ import { logger } from '../utils/logger.js';
 
 const reviewsKey = (guildId) => `guild:${guildId}:store:reviews`;
 const salesKey = (guildId) => `guild:${guildId}:store:sales`;
+const vouchesKey = (guildId) => `guild:${guildId}:store:vouches`;
 
 // ---------------------------------------------------------------------------
 // Storage helpers
@@ -39,12 +40,54 @@ async function writeList(client, key, list) {
     }
 }
 
+const activeOnly = (list) => list.filter((entry) => !entry.voided);
+
+async function readFiltered(client, key, includeVoided) {
+    const list = await readList(client, key);
+    return includeVoided ? list : activeOnly(list);
+}
+
+/**
+ * Marks the LAST entry matching `find` as voided (it is kept for the record but
+ * ignored by stats). Returns { status: 'voided' | 'already_voided' | 'not_found', entry }.
+ */
+function voidEntry(client, key, find, { by, reason }) {
+    return withLock(key, async () => {
+        const list = await readList(client, key);
+        const index = list.findLastIndex(find);
+
+        if (index === -1) return { status: 'not_found' };
+        if (list[index].voided) return { status: 'already_voided', entry: list[index] };
+
+        list[index].voided = { by, reason: reason || null, at: new Date().toISOString() };
+        await writeList(client, key, list);
+        return { status: 'voided', entry: list[index] };
+    });
+}
+
+function updateEntry(client, key, id, patch) {
+    return withLock(key, async () => {
+        const list = await readList(client, key);
+        const index = list.findIndex((entry) => entry.id === id);
+        if (index === -1) return null;
+
+        list[index] = { ...list[index], ...patch };
+        await writeList(client, key, list);
+        return list[index];
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Reviews
 // ---------------------------------------------------------------------------
 
-export function getReviews(client, guildId) {
-    return readList(client, reviewsKey(guildId));
+export function getReviews(client, guildId, { includeVoided = false } = {}) {
+    return readFiltered(client, reviewsKey(guildId), includeVoided);
+}
+
+/** Voids the review for a ticket number. */
+export function voidReview(client, guildId, ticketId, meta) {
+    return voidEntry(client, reviewsKey(guildId), (entry) => Number(entry.ticketId) === Number(ticketId), meta);
 }
 
 /**
@@ -54,7 +97,7 @@ export function addReview(client, guildId, review) {
     return withLock(reviewsKey(guildId), async () => {
         const reviews = await readList(client, reviewsKey(guildId));
 
-        if (reviews.some((entry) => Number(entry.ticketId) === Number(review.ticketId))) {
+        if (reviews.some((entry) => !entry.voided && Number(entry.ticketId) === Number(review.ticketId))) {
             return { duplicate: true };
         }
 
@@ -101,8 +144,17 @@ export function rankHandlersByRating(reviews) {
 // Sales
 // ---------------------------------------------------------------------------
 
-export function getSales(client, guildId) {
-    return readList(client, salesKey(guildId));
+export function getSales(client, guildId, { includeVoided = false } = {}) {
+    return readFiltered(client, salesKey(guildId), includeVoided);
+}
+
+export function updateSale(client, guildId, saleId, patch) {
+    return updateEntry(client, salesKey(guildId), saleId, patch);
+}
+
+/** Voids a sale by its number. */
+export function voidSale(client, guildId, saleId, meta) {
+    return voidEntry(client, salesKey(guildId), (entry) => entry.id === Number(saleId), meta);
 }
 
 /**
@@ -117,7 +169,7 @@ export function addSale(client, guildId, sale) {
         sales.push(saved);
         await writeList(client, salesKey(guildId), sales);
 
-        const customerPurchases = sales.filter((entry) => entry.customerId === saved.customerId).length;
+        const customerPurchases = sales.filter((entry) => !entry.voided && entry.customerId === saved.customerId).length;
         return { sale: saved, customerPurchases };
     });
 }
@@ -161,6 +213,35 @@ export function topBy(items, keyField, valueFn = () => 1, limit = 5) {
         totals.set(key, entry);
     }
     return [...totals.values()].sort((a, b) => b.value - a.value || b.count - a.count).slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------
+// Vouches
+// ---------------------------------------------------------------------------
+
+export function getVouches(client, guildId, { includeVoided = false } = {}) {
+    return readFiltered(client, vouchesKey(guildId), includeVoided);
+}
+
+export function addVouch(client, guildId, vouch) {
+    return withLock(vouchesKey(guildId), async () => {
+        const vouches = await readList(client, vouchesKey(guildId));
+        const nextId = vouches.reduce((max, entry) => Math.max(max, Number(entry.id) || 0), 0) + 1;
+
+        const saved = { ...vouch, id: nextId, at: new Date().toISOString() };
+        vouches.push(saved);
+        await writeList(client, vouchesKey(guildId), vouches);
+        return saved;
+    });
+}
+
+export function updateVouch(client, guildId, vouchId, patch) {
+    return updateEntry(client, vouchesKey(guildId), vouchId, patch);
+}
+
+/** Voids a vouch by its number. */
+export function voidVouch(client, guildId, vouchId, meta) {
+    return voidEntry(client, vouchesKey(guildId), (entry) => entry.id === Number(vouchId), meta);
 }
 
 // ---------------------------------------------------------------------------

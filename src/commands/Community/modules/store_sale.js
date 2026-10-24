@@ -7,6 +7,7 @@ import {
     applyMilestone,
     assignBuyerRole,
     getTextChannel,
+    updateSale,
 } from '../../../services/storeService.js';
 
 const ROLE_STATUS_TEXT = {
@@ -115,7 +116,11 @@ export default {
             try {
                 const logChannel = await getTextChannel(guild, storeConfig.salesLogChannelId);
                 if (!logChannel) throw new Error('Sales log channel not found');
-                await logChannel.send({ embeds: [logEmbed], allowedMentions: { parse: [] } });
+                const logMessage = await logChannel.send({ embeds: [logEmbed], allowedMentions: { parse: [] } });
+                await updateSale(client, guild.id, sale.id, {
+                    logChannelId: logMessage.channelId,
+                    logMessageId: logMessage.id,
+                }).catch((error) => logger.warn(`sale: could not save log message id: ${error.message}`));
                 notes.push('Posted in the sales log');
             } catch (error) {
                 logger.error('sale: could not post to sales log channel:', error);
