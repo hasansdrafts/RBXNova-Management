@@ -2,6 +2,10 @@ import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
+// Only members with this role can use /review.
+// Can be overridden with REVIEW_ROLE_ID in the .env file.
+const REVIEW_ROLE_ID = process.env.REVIEW_ROLE_ID || '1560204341556551752';
+
 // Timezone used for the date/time shown in the embed footer.
 const REVIEW_TIMEZONE = 'Asia/Karachi';
 
@@ -78,6 +82,19 @@ export default {
     category: 'Community',
 
     async execute(interaction, config, client) {
+        const memberRoles = interaction.member?.roles;
+        const hasReviewRole = Array.isArray(memberRoles)
+            ? memberRoles.includes(REVIEW_ROLE_ID)
+            : Boolean(memberRoles?.cache?.has(REVIEW_ROLE_ID));
+
+        if (!hasReviewRole) {
+            await InteractionHelper.safeReply(interaction, {
+                content: "❌ You don't have the required role to use this command.",
+                flags: MessageFlags.Ephemeral,
+            });
+            return;
+        }
+
         const handler = interaction.options.getUser('handler');
         const rating = interaction.options.getInteger('rating');
         const ticketId = interaction.options.getInteger('ticket_id');
