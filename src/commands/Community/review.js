@@ -80,8 +80,8 @@ export default {
             .setColor(REVIEW_COLOR)
             .setTitle(`${'⭐'.repeat(rating)} New Review — Ticket #${ticketId}`)
             .addFields(
-                { name: '👦 Customer', value: `${interaction.user}` },
-                { name: '🛠️ Handler', value: `${handler}` },
+                { name: '🎓 Customer', value: `${interaction.user}` },
+                { name: '🔧 Handler', value: `${handler}` },
                 { name: '📦 What They Bought', value: `${robux} Robux` },
                 { name: '⭐ Rating', value: `${rating} / 5` },
             )
