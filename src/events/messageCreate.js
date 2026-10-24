@@ -97,14 +97,7 @@ async function handlePrefixCommand(message, client) {
 
     const restriction = getPrefixRestriction(command, args, resolveSubcommandAlias);
     if (!supportsPrefixExecution(command) || restriction.blocked) {
-      if (restriction.blocked && restriction.reason) {
-        const embed = createEmbed({
-          title: 'Slash Command Only',
-          description: `${restriction.reason}\nUse \`/${resolvedCommandName}\` instead.`,
-          color: 'info',
-        });
-        await message.channel.send({ embeds: [embed] }).catch(() => {});
-      }
+      // Slash-only commands used with the prefix are ignored silently (no reply).
       return;
     }
 
