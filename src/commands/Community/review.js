@@ -88,11 +88,11 @@ export default {
             { name: '🎓 Customer', value: `${interaction.user}` },
             { name: '🔧 Handler', value: `${handler}` },
             { name: '📦 What They Bought', value: `${robux} Robux` },
-            { name: '⭐ Rating', value: `${'⭐'.repeat(rating)} ${rating} / 5` },
+            { name: 'Rating', value: `${'⭐'.repeat(rating)} ${rating} / 5` },
         ];
 
         if (reviewText) {
-            fields.push({ name: '📝 Review', value: reviewText });
+            fields.push({ name: '📝 Review', value: `> ${reviewText}` });
         }
 
         // Built as a plain embed object on purpose: the bot's global EmbedBuilder
