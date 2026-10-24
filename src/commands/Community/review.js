@@ -67,6 +67,13 @@ export default {
                 .setDescription('What they bought: amount of Robux (numbers only)')
                 .setRequired(true)
                 .setMinValue(1),
+        )
+        .addStringOption((option) =>
+            option
+                .setName('review')
+                .setDescription('Leave a small written review (optional)')
+                .setRequired(false)
+                .setMaxLength(200),
         ),
     category: 'Community',
 
@@ -75,18 +82,25 @@ export default {
         const rating = interaction.options.getInteger('rating');
         const ticketId = interaction.options.getInteger('ticket_id');
         const robux = interaction.options.getInteger('robux');
+        const reviewText = interaction.options.getString('review')?.trim();
+
+        const fields = [
+            { name: '🎓 Customer', value: `${interaction.user}` },
+            { name: '🔧 Handler', value: `${handler}` },
+            { name: '📦 What They Bought', value: `${robux} Robux` },
+            { name: '⭐ Rating', value: `${rating} / 5` },
+        ];
+
+        if (reviewText) {
+            fields.push({ name: '📝 Review', value: reviewText });
+        }
 
         // Built as a plain embed object on purpose: the bot's global EmbedBuilder
         // patches (src/utils/embeds.js) strip emojis and drop custom footers.
         const embed = {
             color: REVIEW_COLOR,
             title: `${'⭐'.repeat(rating)} New Review — Ticket #${ticketId}`,
-            fields: [
-                { name: '🎓 Customer', value: `${interaction.user}` },
-                { name: '🔧 Handler', value: `${handler}` },
-                { name: '📦 What They Bought', value: `${robux} Robux` },
-                { name: '⭐ Rating', value: `${rating} / 5` },
-            ],
+            fields,
             footer: { text: `${FOOTER_PREFIX} | ${formatDateTime()}` },
         };
 
