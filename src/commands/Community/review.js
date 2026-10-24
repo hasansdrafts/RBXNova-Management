@@ -2,9 +2,15 @@ import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-// Only members with this role can use /review.
-// Can be overridden with REVIEW_ROLE_ID in the .env file.
-const REVIEW_ROLE_ID = process.env.REVIEW_ROLE_ID || '1560204341556551752';
+// Only members with at least one of these roles can use /review.
+// Can be overridden with REVIEW_ROLE_IDS (comma-separated) in the .env file.
+const REVIEW_ROLE_IDS = process.env.REVIEW_ROLE_IDS
+    ? process.env.REVIEW_ROLE_IDS.split(',').map((id) => id.trim()).filter(Boolean)
+    : [
+        '1560212834871148635',
+        '1560981749801033749',
+        '1560190565478309898',
+    ];
 
 // Channel where every review embed is posted, no matter where /review is used.
 // Can be overridden with REVIEW_CHANNEL_ID in the .env file.
@@ -87,9 +93,11 @@ export default {
 
     async execute(interaction, config, client) {
         const memberRoles = interaction.member?.roles;
-        const hasReviewRole = Array.isArray(memberRoles)
-            ? memberRoles.includes(REVIEW_ROLE_ID)
-            : Boolean(memberRoles?.cache?.has(REVIEW_ROLE_ID));
+        const hasReviewRole = REVIEW_ROLE_IDS.some((roleId) =>
+            Array.isArray(memberRoles)
+                ? memberRoles.includes(roleId)
+                : Boolean(memberRoles?.cache?.has(roleId)),
+        );
 
         if (!hasReviewRole) {
             await InteractionHelper.safeReply(interaction, {
