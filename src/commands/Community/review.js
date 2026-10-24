@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -76,16 +76,19 @@ export default {
         const ticketId = interaction.options.getInteger('ticket_id');
         const robux = interaction.options.getInteger('robux');
 
-        const embed = new EmbedBuilder()
-            .setColor(REVIEW_COLOR)
-            .setTitle(`${'⭐'.repeat(rating)} New Review — Ticket #${ticketId}`)
-            .addFields(
+        // Built as a plain embed object on purpose: the bot's global EmbedBuilder
+        // patches (src/utils/embeds.js) strip emojis and drop custom footers.
+        const embed = {
+            color: REVIEW_COLOR,
+            title: `${'⭐'.repeat(rating)} New Review — Ticket #${ticketId}`,
+            fields: [
                 { name: '🎓 Customer', value: `${interaction.user}` },
                 { name: '🔧 Handler', value: `${handler}` },
                 { name: '📦 What They Bought', value: `${robux} Robux` },
                 { name: '⭐ Rating', value: `${rating} / 5` },
-            )
-            .setFooter({ text: `${FOOTER_PREFIX} | ${formatDateTime()}` });
+            ],
+            footer: { text: `${FOOTER_PREFIX} | ${formatDateTime()}` },
+        };
 
         await InteractionHelper.safeReply(interaction, { embeds: [embed] });
 
