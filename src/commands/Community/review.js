@@ -88,7 +88,7 @@ export default {
             { name: '🎓 Customer', value: `${interaction.user}` },
             { name: '🔧 Handler', value: `${handler}` },
             { name: '📦 What They Bought', value: `${robux} Robux` },
-            { name: '⭐ Rating', value: `${rating} / 5` },
+            { name: '⭐ Rating', value: `${'⭐'.repeat(rating)} ${rating} / 5` },
         ];
 
         if (reviewText) {
@@ -99,7 +99,7 @@ export default {
         // patches (src/utils/embeds.js) strip emojis and drop custom footers.
         const embed = {
             color: REVIEW_COLOR,
-            title: `${'⭐'.repeat(rating)} New Review — Ticket #${ticketId}`,
+            title: `${'★'.repeat(rating)} New Review — Ticket #${ticketId}`,
             fields,
             footer: { text: `${FOOTER_PREFIX} | ${formatDateTime()}` },
         };
