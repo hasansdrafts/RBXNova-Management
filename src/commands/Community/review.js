@@ -60,6 +60,13 @@ export default {
                 .setDescription('Your ticket ID number')
                 .setRequired(true)
                 .setMinValue(1),
+        )
+        .addIntegerOption((option) =>
+            option
+                .setName('robux')
+                .setDescription('What they bought: amount of Robux (numbers only)')
+                .setRequired(true)
+                .setMinValue(1),
         ),
     category: 'Community',
 
@@ -67,6 +74,7 @@ export default {
         const handler = interaction.options.getUser('handler');
         const rating = interaction.options.getInteger('rating');
         const ticketId = interaction.options.getInteger('ticket_id');
+        const robux = interaction.options.getInteger('robux');
 
         const embed = new EmbedBuilder()
             .setColor(REVIEW_COLOR)
@@ -74,6 +82,7 @@ export default {
             .addFields(
                 { name: '👦 Customer', value: `${interaction.user}` },
                 { name: '🛠️ Handler', value: `${handler}` },
+                { name: '📦 What They Bought', value: `${robux} Robux` },
                 { name: '⭐ Rating', value: `${rating} / 5` },
             )
             .setFooter({ text: `${FOOTER_PREFIX} | ${formatDateTime()}` });
@@ -81,7 +90,7 @@ export default {
         await InteractionHelper.safeReply(interaction, { embeds: [embed] });
 
         logger.debug(
-            `Review submitted by ${interaction.user.id} for ticket ${ticketId} (handler ${handler.id}, rating ${rating}) in guild ${interaction.guildId}`,
+            `Review submitted by ${interaction.user.id} for ticket ${ticketId} (handler ${handler.id}, robux ${robux}, rating ${rating}) in guild ${interaction.guildId}`,
         );
     },
 };
