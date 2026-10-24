@@ -6,13 +6,63 @@ import { reconcileTicketPanels, reconcileVerificationPanels, reconcileReactionRo
 import { reconcileLevelRoles } from "../services/leveling/levelRoleSyncService.js";
 import { initRiffyAfterReady } from "../services/music/riffySetup.js";
 
+function getMemberCount(client, guildId) {
+  if (guildId) {
+    return client.guilds.cache.get(guildId)?.memberCount ?? null;
+  }
+  return client.guilds.cache.reduce((total, guild) => total + guild.memberCount, 0);
+}
+
+function buildPresence(client) {
+  const presence = config.bot.presence;
+  const live = presence.liveMemberCount;
+
+  if (!live?.enabled) {
+    return presence;
+  }
+
+  const count = getMemberCount(client, live.guildId);
+  if (count === null) {
+    return presence;
+  }
+
+  return {
+    status: presence.status,
+    activities: [
+      {
+        name: (live.template || "{count} members").replace("{count}", count.toLocaleString("en-US")),
+        type: 3, // Watching
+      },
+    ],
+  };
+}
+
+function startPresence(client) {
+  const live = config.bot.presence.liveMemberCount;
+
+  client.user.setPresence(buildPresence(client));
+
+  if (!live?.enabled) {
+    return;
+  }
+
+  const intervalMs = Math.max(30, live.refreshSeconds || 60) * 1000;
+  setInterval(() => {
+    try {
+      client.user.setPresence(buildPresence(client));
+    } catch (error) {
+      logger.error("Failed to refresh member count presence:", error);
+    }
+  }, intervalMs);
+}
+
 export default {
   name: Events.ClientReady,
   once: true,
 
   async execute(client) {
     try {
-      client.user.setPresence(config.bot.presence);
+      startPresence(client);
 
       startupLog(`Ready! Logged in as ${client.user.tag}`);
       startupLog(`Serving ${client.guilds.cache.size} guild(s)`);

@@ -67,7 +67,17 @@ function formatRoleMention(guild, roleId) {
     return role ? `<@&${roleId}>` : `@${roleId}`;
 }
 
-function getBotPresenceText() {
+function getBotPresenceText(guild) {
+    const live = botConfig.presence?.liveMemberCount;
+    if (live?.enabled) {
+        const countGuild = live.guildId ? guild.client.guilds.cache.get(live.guildId) : guild;
+        const count = countGuild?.memberCount;
+        if (count !== undefined) {
+            const text = (live.template || '{count} members').replace('{count}', count.toLocaleString('en-US'));
+            return `Watching **${text}**`;
+        }
+    }
+
     const activity = botConfig.presence?.activities?.[0];
     if (!activity?.name) {
         return '`Not configured`';
@@ -115,7 +125,7 @@ function buildDashboardEmbed(config, guild) {
             },
             {
                 name: '💚 Bot Status',
-                value: getBotPresenceText(),
+                value: getBotPresenceText(guild),
                 inline: false,
             },
             {

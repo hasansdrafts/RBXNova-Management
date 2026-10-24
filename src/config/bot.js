@@ -21,6 +21,9 @@ export const botConfig = {
     // 3 = Watching
     // 4 = Custom
     // 5 = Competing
+    // With `liveMemberCount.enabled` true, the activity below is replaced at runtime
+    // by "Watching <count> members" and refreshed automatically (see src/events/ready.js).
+    // The list below is the fallback used when live member count is disabled.
     activities: [
       {
         name: "Custom Status", // required by Discord API, not shown in the client
@@ -28,6 +31,23 @@ export const botConfig = {
         type: 4,               // Custom
       },
     ],
+
+    // Live "Watching X members" status.
+    liveMemberCount: {
+      enabled: true,
+
+      // Text template. {count} is replaced with the member count.
+      // Shows as: Watching 962 members
+      template: "{count} members",
+
+      // Server to count. Set MEMBER_COUNT_GUILD_ID in .env to your server's ID.
+      // If empty, members across all servers the bot is in are added together.
+      guildId: process.env.MEMBER_COUNT_GUILD_ID || "",
+
+      // How often to refresh the status, in seconds (Discord rate-limits presence
+      // updates, so keep this at 30 or higher).
+      refreshSeconds: 60,
+    },
   },
 
   // =========================
