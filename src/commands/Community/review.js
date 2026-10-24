@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { addReview, getReviews } from '../../services/storeService.js';
 
 // Only members with at least one of these roles can use /review.
 // Can be overridden with REVIEW_ROLE_IDS (comma-separated) in the .env file.
@@ -137,6 +138,20 @@ export default {
         // message in the review channel so it doesn't show the "<user> used /review" header.
         await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
 
+        // Each ticket can only be reviewed once.
+        try {
+            const existing = await getReviews(client, interaction.guildId);
+            if (existing.some((entry) => Number(entry.ticketId) === ticketId)) {
+                await InteractionHelper.safeEditReply(interaction, {
+                    content: `❌ A review for ticket #${ticketId} has already been posted.`,
+                });
+                return;
+            }
+        } catch (error) {
+            logger.error('Could not check existing reviews (continuing):', error);
+        }
+
+        let sentMessage = null;
         try {
             const reviewChannel =
                 interaction.guild.channels.cache.get(REVIEW_CHANNEL_ID) ??
@@ -146,13 +161,29 @@ export default {
                 throw new Error(`Review channel ${REVIEW_CHANNEL_ID} is missing or not a text channel`);
             }
 
-            await reviewChannel.send({ embeds: [embed] });
+            sentMessage = await reviewChannel.send({ embeds: [embed] });
         } catch (error) {
             logger.error('Failed to post review embed in the review channel:', error);
             await InteractionHelper.safeEditReply(interaction, {
                 content: "❌ I couldn't post your review. Please let a staff member know.",
             });
             return;
+        }
+
+        // Save the review so /reviewstats and /handlerboard can use it.
+        try {
+            await addReview(client, interaction.guildId, {
+                customerId: interaction.user.id,
+                handlerId: handler.id,
+                ticketId,
+                robux,
+                rating,
+                text: reviewText || null,
+                channelId: sentMessage.channelId,
+                messageId: sentMessage.id,
+            });
+        } catch (error) {
+            logger.error('Review was posted but could not be saved:', error);
         }
 
         await InteractionHelper.safeEditReply(interaction, {
