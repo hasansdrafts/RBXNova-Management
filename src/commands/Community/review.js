@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -104,7 +104,23 @@ export default {
             footer: { text: `${FOOTER_PREFIX} | ${formatDateTime()}` },
         };
 
-        await InteractionHelper.safeReply(interaction, { embeds: [embed] });
+        // Reply privately (only the customer sees it), then post the embed as a normal
+        // channel message so it doesn't show the "<user> used /review" header.
+        await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+
+        try {
+            await interaction.channel.send({ embeds: [embed] });
+        } catch (error) {
+            logger.error('Failed to post review embed in channel:', error);
+            await InteractionHelper.safeEditReply(interaction, {
+                content: "❌ I couldn't post your review in this channel. Please make sure I can send messages and embeds here.",
+            });
+            return;
+        }
+
+        await InteractionHelper.safeEditReply(interaction, {
+            content: '✅ Your review has been posted. Thank you!',
+        });
 
         logger.debug(
             `Review submitted by ${interaction.user.id} for ticket ${ticketId} (handler ${handler.id}, robux ${robux}, rating ${rating}) in guild ${interaction.guildId}`,
