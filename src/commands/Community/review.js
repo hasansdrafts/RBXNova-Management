@@ -6,6 +6,10 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 // Can be overridden with REVIEW_ROLE_ID in the .env file.
 const REVIEW_ROLE_ID = process.env.REVIEW_ROLE_ID || '1560204341556551752';
 
+// Channel where every review embed is posted, no matter where /review is used.
+// Can be overridden with REVIEW_CHANNEL_ID in the .env file.
+const REVIEW_CHANNEL_ID = process.env.REVIEW_CHANNEL_ID || '1560194659387572224';
+
 // Timezone used for the date/time shown in the embed footer.
 const REVIEW_TIMEZONE = 'Asia/Karachi';
 
@@ -122,15 +126,23 @@ export default {
         };
 
         // Reply privately (only the customer sees it), then post the embed as a normal
-        // channel message so it doesn't show the "<user> used /review" header.
+        // message in the review channel so it doesn't show the "<user> used /review" header.
         await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
 
         try {
-            await interaction.channel.send({ embeds: [embed] });
+            const reviewChannel =
+                interaction.guild.channels.cache.get(REVIEW_CHANNEL_ID) ??
+                (await interaction.guild.channels.fetch(REVIEW_CHANNEL_ID));
+
+            if (!reviewChannel?.isTextBased()) {
+                throw new Error(`Review channel ${REVIEW_CHANNEL_ID} is missing or not a text channel`);
+            }
+
+            await reviewChannel.send({ embeds: [embed] });
         } catch (error) {
-            logger.error('Failed to post review embed in channel:', error);
+            logger.error('Failed to post review embed in the review channel:', error);
             await InteractionHelper.safeEditReply(interaction, {
-                content: "❌ I couldn't post your review in this channel. Please make sure I can send messages and embeds here.",
+                content: "❌ I couldn't post your review. Please let a staff member know.",
             });
             return;
         }
