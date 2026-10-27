@@ -40,6 +40,18 @@ export const storeConfig = {
         { purchases: 25, roleName: 'VIP Customer', roleId: '' },
     ],
 
+    // Price list used by /store calc. `rate` is how much PKR 1 Robux costs.
+    // To change a price, edit the number here (keep `key` the same).
+    rates: [
+        { key: 'group', name: 'Group Payouts', rate: 1.9 },
+        { key: 'plus', name: 'Roblox Plus (Subscription)', rate: 2.1 },
+        { key: 'gifting', name: 'Ingame Gifting', rate: 1.5 },
+        { key: 'gamepass', name: 'Gamepass (Not Tax Covered)', rate: 1.4 },
+        { key: 'gamepass_tax', name: 'Gamepass (Tax Covered)', rate: 1.9 },
+    ],
+    rateCurrency: 'PKR',
+    paymentNote: 'PKR or crypto currency',
+
     // Timezone for dates shown in embeds.
     timezone: 'Asia/Karachi',
 

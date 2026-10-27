@@ -6,6 +6,8 @@ import storeReviewStats from './modules/store_reviewstats.js';
 import storeHandlerBoard from './modules/store_handlerboard.js';
 import storeVouch from './modules/store_vouch.js';
 import storeVoid from './modules/store_void.js';
+import storeCalc from './modules/store_calc.js';
+import { storeConfig } from '../../config/store.js';
 
 // All store tools live under one /store command because Discord allows at most
 // 100 global slash commands and the bot is at that limit.
@@ -18,6 +20,7 @@ const HANDLERS = {
     'void-sale': storeVoid,
     'void-review': storeVoid,
     'void-vouch': storeVoid,
+    calc: storeCalc,
 };
 
 export default {
@@ -108,6 +111,40 @@ export default {
                         .setRequired(true)
                         .setMinLength(3)
                         .setMaxLength(300),
+                ),
+        )
+        .addSubcommand((sub) =>
+            sub
+                .setName('calc')
+                .setDescription('Rate calculator: see what Robux costs, or how much Robux you get.')
+                .addIntegerOption((option) =>
+                    option
+                        .setName('robux')
+                        .setDescription('How many Robux you want (shows the price)')
+                        .setRequired(false)
+                        .setMinValue(1)
+                        .setMaxValue(100000000),
+                )
+                .addNumberOption((option) =>
+                    option
+                        .setName('pkr')
+                        .setDescription('How much PKR you have (shows how many Robux you get)')
+                        .setRequired(false)
+                        .setMinValue(1)
+                        .setMaxValue(1000000000),
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName('method')
+                        .setDescription('Only show one method (default: all methods)')
+                        .setRequired(false)
+                        .addChoices(...storeConfig.rates.map((entry) => ({ name: entry.name, value: entry.key }))),
+                )
+                .addBooleanOption((option) =>
+                    option
+                        .setName('public')
+                        .setDescription('Show the result to everyone in the channel (default: only you)')
+                        .setRequired(false),
                 ),
         )
         .addSubcommand((sub) =>
