@@ -8,26 +8,45 @@ function idList(envName, fallback = []) {
 }
 
 export const storeConfig = {
-    // Staff roles allowed to use /sale and /salestats.
-    // (.env: SALE_ROLE_IDS) Defaults to the same three roles allowed to use /review.
-    staffRoleIds: idList('SALE_ROLE_IDS', [
-        '1560212834871148635',
-        '1560981749801033749',
-        '1560190565478309898',
-    ]),
+    // Your main server. It keeps the defaults below without any setup.
+    // Every other server starts empty and is configured with /store setup.
+    // (.env: STORE_HOME_GUILD_ID, otherwise GUILD_ID)
+    homeGuildId: process.env.STORE_HOME_GUILD_ID || process.env.GUILD_ID || '1559922525415276614',
 
-    // Role given to customers when a sale is logged for them.
-    // (.env: BUYER_ROLE_ID) If empty, the bot looks for a role named "Buyer" or "Buyers".
-    buyerRoleId: process.env.BUYER_ROLE_ID || '',
+    // Defaults for the home server. Anything set with /store setup overrides these.
+    homeDefaults: {
+        // Staff roles allowed to use /store sale, stats and the void commands.
+        // (.env: SALE_ROLE_IDS, comma-separated)
+        staffRoleIds: idList('SALE_ROLE_IDS', [
+            '1560212834871148635',
+            '1560981749801033749',
+            '1560190565478309898',
+        ]),
+
+        // Roles allowed to use /review. (.env: REVIEW_ROLE_IDS, comma-separated)
+        reviewRoleIds: idList('REVIEW_ROLE_IDS', [
+            '1560212834871148635',
+            '1560981749801033749',
+            '1560190565478309898',
+        ]),
+
+        // Channel where every review is posted. (.env: REVIEW_CHANNEL_ID)
+        reviewChannelId: process.env.REVIEW_CHANNEL_ID || '1560194659387572224',
+
+        // Private staff channel where every logged sale is posted.
+        // (.env: SALES_LOG_CHANNEL_ID) If empty, sales are saved but not posted anywhere.
+        salesLogChannelId: process.env.SALES_LOG_CHANNEL_ID || '',
+
+        // Channel for vouches. (.env: VOUCH_CHANNEL_ID)
+        // If empty, the bot looks for a channel with "vouches" in its name.
+        vouchChannelId: process.env.VOUCH_CHANNEL_ID || '',
+
+        // Role given to customers when a sale is logged for them. (.env: BUYER_ROLE_ID)
+        // If empty, the bot looks for a role named "Buyer" or "Buyers".
+        buyerRoleId: process.env.BUYER_ROLE_ID || '',
+    },
+
     buyerRoleNames: ['buyer', 'buyers'],
-
-    // Private staff channel where every logged sale is posted.
-    // (.env: SALES_LOG_CHANNEL_ID) If empty, sales are saved but not posted anywhere.
-    salesLogChannelId: process.env.SALES_LOG_CHANNEL_ID || '',
-
-    // Channel for /vouch posts.
-    // (.env: VOUCH_CHANNEL_ID) If empty, the bot looks for a channel with "vouches" in its name.
-    vouchChannelId: process.env.VOUCH_CHANNEL_ID || '',
     vouchChannelNameHint: 'vouches',
 
     // Customer milestones: when a customer reaches `purchases` logged sales they get the
@@ -88,11 +107,4 @@ export function formatStoreDateTime(date = new Date()) {
 
 export function storeFooter() {
     return { text: `${storeConfig.footer} | ${formatStoreDateTime()}` };
-}
-
-export function memberHasAnyRole(member, roleIds) {
-    const roles = member?.roles;
-    return roleIds.some((roleId) =>
-        Array.isArray(roles) ? roles.includes(roleId) : Boolean(roles?.cache?.has(roleId)),
-    );
 }

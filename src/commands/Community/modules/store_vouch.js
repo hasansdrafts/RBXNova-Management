@@ -2,7 +2,13 @@ import { MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { storeConfig, storeFooter } from '../../../config/store.js';
-import { addVouch, getVouchChannel, updateVouch, voidVouch } from '../../../services/storeService.js';
+import {
+    addVouch,
+    getStoreSettings,
+    getVouchChannel,
+    updateVouch,
+    voidVouch,
+} from '../../../services/storeService.js';
 
 export default {
     async execute(interaction, config, client) {
@@ -49,7 +55,8 @@ export default {
         };
 
         try {
-            const channel = await getVouchChannel(interaction.guild);
+            const settings = await getStoreSettings(client, interaction.guildId);
+            const channel = await getVouchChannel(interaction.guild, settings.vouchChannelId);
             if (!channel) {
                 throw new Error('Vouch channel not found (set VOUCH_CHANNEL_ID)');
             }

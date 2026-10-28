@@ -1,8 +1,15 @@
 import { MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { storeConfig, storeFooter, memberHasAnyRole } from '../../../config/store.js';
-import { filterSalesByPeriod, getSales, topBy } from '../../../services/storeService.js';
+import { storeConfig, storeFooter } from '../../../config/store.js';
+import {
+    filterSalesByPeriod,
+    getSales,
+    getStoreSettings,
+    isStoreAllowed,
+    noAccessMessage,
+    topBy,
+} from '../../../services/storeService.js';
 
 const PERIOD_LABELS = {
     today: 'Today',
@@ -20,9 +27,10 @@ function formatList(entries, unit) {
 
 export default {
     async execute(interaction, config, client) {
-        if (!memberHasAnyRole(interaction.member, storeConfig.staffRoleIds)) {
+        const settings = await getStoreSettings(client, interaction.guildId);
+        if (!isStoreAllowed(interaction, settings.staffRoleIds)) {
             await InteractionHelper.safeReply(interaction, {
-                content: "❌ You don't have the required role to use this command.",
+                content: noAccessMessage(settings.staffRoleIds),
                 flags: MessageFlags.Ephemeral,
             });
             return;

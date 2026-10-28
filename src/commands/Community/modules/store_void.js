@@ -1,8 +1,15 @@
 import { MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { storeConfig, memberHasAnyRole } from '../../../config/store.js';
-import { getTextChannel, voidReview, voidSale, voidVouch } from '../../../services/storeService.js';
+import {
+    getStoreSettings,
+    getTextChannel,
+    isStoreAllowed,
+    noAccessMessage,
+    voidReview,
+    voidSale,
+    voidVouch,
+} from '../../../services/storeService.js';
 
 const VOIDED_COLOR = 0x99aab5;
 
@@ -110,9 +117,10 @@ const VOID_HANDLERS = {
 
 export default {
     async execute(interaction, config, client) {
-        if (!memberHasAnyRole(interaction.member, storeConfig.staffRoleIds)) {
+        const settings = await getStoreSettings(client, interaction.guildId);
+        if (!isStoreAllowed(interaction, settings.staffRoleIds)) {
             await InteractionHelper.safeReply(interaction, {
-                content: "❌ You don't have the required role to use this command.",
+                content: noAccessMessage(settings.staffRoleIds),
                 flags: MessageFlags.Ephemeral,
             });
             return;
