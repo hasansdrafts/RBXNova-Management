@@ -1,4 +1,4 @@
-import { ChannelType, SlashCommandBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import storeSale from './modules/store_sale.js';
 import storeSaleStats from './modules/store_salestats.js';
@@ -7,7 +7,6 @@ import storeHandlerBoard from './modules/store_handlerboard.js';
 import storeVouch from './modules/store_vouch.js';
 import storeVoid from './modules/store_void.js';
 import storeCalc from './modules/store_calc.js';
-import storeSetup from './modules/store_setup.js';
 import { storeConfig } from '../../config/store.js';
 
 // All store tools live under one /store command because Discord allows at most
@@ -22,8 +21,6 @@ const HANDLERS = {
     'void-review': storeVoid,
     'void-vouch': storeVoid,
     calc: storeCalc,
-    setup: storeSetup,
-    settings: storeSetup,
 };
 
 export default {
@@ -142,92 +139,7 @@ export default {
                         .setDescription('Only show one method (default: all methods)')
                         .setRequired(false)
                         .addChoices(...storeConfig.rates.map((entry) => ({ name: entry.name, value: entry.key }))),
-                )
-                .addBooleanOption((option) =>
-                    option
-                        .setName('public')
-                        .setDescription('Show the result to everyone in the channel (default: only you)')
-                        .setRequired(false),
                 ),
-        )
-        .addSubcommand((sub) =>
-            sub
-                .setName('setup')
-                .setDescription('Admin only: choose this server\'s staff roles, review roles and channels.')
-                .addRoleOption((option) =>
-                    option
-                        .setName('staff_role_1')
-                        .setDescription('Staff role for sale/stats/void commands (giving any staff role replaces the old list)')
-                        .setRequired(false),
-                )
-                .addRoleOption((option) =>
-                    option
-                        .setName('staff_role_2')
-                        .setDescription('Another staff role (optional)')
-                        .setRequired(false),
-                )
-                .addRoleOption((option) =>
-                    option
-                        .setName('staff_role_3')
-                        .setDescription('Another staff role (optional)')
-                        .setRequired(false),
-                )
-                .addRoleOption((option) =>
-                    option
-                        .setName('review_role_1')
-                        .setDescription('Role allowed to use /review (giving any review role replaces the old list)')
-                        .setRequired(false),
-                )
-                .addRoleOption((option) =>
-                    option
-                        .setName('review_role_2')
-                        .setDescription('Another role allowed to use /review (optional)')
-                        .setRequired(false),
-                )
-                .addRoleOption((option) =>
-                    option
-                        .setName('review_role_3')
-                        .setDescription('Another role allowed to use /review (optional)')
-                        .setRequired(false),
-                )
-                .addChannelOption((option) =>
-                    option
-                        .setName('review_channel')
-                        .setDescription('Channel where reviews are posted')
-                        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
-                        .setRequired(false),
-                )
-                .addChannelOption((option) =>
-                    option
-                        .setName('sales_log_channel')
-                        .setDescription('Private channel where sales are logged')
-                        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
-                        .setRequired(false),
-                )
-                .addChannelOption((option) =>
-                    option
-                        .setName('vouch_channel')
-                        .setDescription('Channel where vouches are posted')
-                        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
-                        .setRequired(false),
-                )
-                .addRoleOption((option) =>
-                    option
-                        .setName('buyer_role')
-                        .setDescription('Role given to customers when a sale is logged')
-                        .setRequired(false),
-                )
-                .addBooleanOption((option) =>
-                    option
-                        .setName('reset')
-                        .setDescription('Clear all saved settings first (back to defaults), then apply the options above')
-                        .setRequired(false),
-                ),
-        )
-        .addSubcommand((sub) =>
-            sub
-                .setName('settings')
-                .setDescription('Admin only: show this server\'s store settings.'),
         )
         .addSubcommand((sub) =>
             sub

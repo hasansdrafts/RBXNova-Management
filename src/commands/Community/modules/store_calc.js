@@ -8,8 +8,6 @@ export default {
         const robux = interaction.options.getInteger('robux');
         const pkr = interaction.options.getNumber('pkr');
         const methodKey = interaction.options.getString('method');
-        const isPublic = interaction.options.getBoolean('public') ?? false;
-        const flags = isPublic ? undefined : MessageFlags.Ephemeral;
 
         if ((robux === null) === (pkr === null)) {
             await InteractionHelper.safeReply(interaction, {
@@ -43,6 +41,7 @@ export default {
             footer: storeFooter(),
         };
 
-        await InteractionHelper.safeReply(interaction, { embeds: [embed], ...(flags ? { flags } : {}) });
+        // No ephemeral flag: the result is always visible to everyone in the channel.
+        await InteractionHelper.safeReply(interaction, { embeds: [embed] });
     },
 };

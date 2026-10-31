@@ -1,13 +1,21 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import {
-    addReview,
-    getReviews,
-    getStoreSettings,
-    isStoreAllowed,
-    noAccessMessage,
-} from '../../services/storeService.js';
+import { addReview, getReviews } from '../../services/storeService.js';
+
+// Only members with at least one of these roles can use /review.
+// Can be overridden with REVIEW_ROLE_IDS (comma-separated) in the .env file.
+const REVIEW_ROLE_IDS = process.env.REVIEW_ROLE_IDS
+    ? process.env.REVIEW_ROLE_IDS.split(',').map((id) => id.trim()).filter(Boolean)
+    : [
+        '1560212834871148635',
+        '1560981749801033749',
+        '1560190565478309898',
+    ];
+
+// Channel where every review embed is posted, no matter where /review is used.
+// Can be overridden with REVIEW_CHANNEL_ID in the .env file.
+const REVIEW_CHANNEL_ID = process.env.REVIEW_CHANNEL_ID || '1560194659387572224';
 
 // Timezone used for the date/time shown in the embed footer.
 const REVIEW_TIMEZONE = 'Asia/Karachi';
@@ -85,12 +93,16 @@ export default {
     category: 'Community',
 
     async execute(interaction, config, client) {
-        // Each server picks its own review roles and channel with /store setup.
-        const settings = await getStoreSettings(client, interaction.guildId);
+        const memberRoles = interaction.member?.roles;
+        const hasReviewRole = REVIEW_ROLE_IDS.some((roleId) =>
+            Array.isArray(memberRoles)
+                ? memberRoles.includes(roleId)
+                : Boolean(memberRoles?.cache?.has(roleId)),
+        );
 
-        if (!isStoreAllowed(interaction, settings.reviewRoleIds)) {
+        if (!hasReviewRole) {
             await InteractionHelper.safeReply(interaction, {
-                content: noAccessMessage(settings.reviewRoleIds),
+                content: "❌ You don't have the required role to use this command.",
                 flags: MessageFlags.Ephemeral,
             });
             return;
@@ -141,19 +153,12 @@ export default {
 
         let sentMessage = null;
         try {
-            if (!settings.reviewChannelId) {
-                await InteractionHelper.safeEditReply(interaction, {
-                    content: "❌ The review channel isn't set up yet. A server admin needs to run `/store setup`.",
-                });
-                return;
-            }
-
             const reviewChannel =
-                interaction.guild.channels.cache.get(settings.reviewChannelId) ??
-                (await interaction.guild.channels.fetch(settings.reviewChannelId));
+                interaction.guild.channels.cache.get(REVIEW_CHANNEL_ID) ??
+                (await interaction.guild.channels.fetch(REVIEW_CHANNEL_ID));
 
             if (!reviewChannel?.isTextBased()) {
-                throw new Error(`Review channel ${settings.reviewChannelId} is missing or not a text channel`);
+                throw new Error(`Review channel ${REVIEW_CHANNEL_ID} is missing or not a text channel`);
             }
 
             sentMessage = await reviewChannel.send({ embeds: [embed] });

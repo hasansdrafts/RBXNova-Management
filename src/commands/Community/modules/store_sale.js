@@ -1,15 +1,12 @@
 import { MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { storeConfig, storeFooter } from '../../../config/store.js';
+import { storeConfig, storeFooter, memberHasAnyRole } from '../../../config/store.js';
 import {
     addSale,
     applyMilestone,
     assignBuyerRole,
-    getStoreSettings,
     getTextChannel,
-    isStoreAllowed,
-    noAccessMessage,
     updateSale,
 } from '../../../services/storeService.js';
 
@@ -24,10 +21,9 @@ const ROLE_STATUS_TEXT = {
 
 export default {
     async execute(interaction, config, client) {
-        const settings = await getStoreSettings(client, interaction.guildId);
-        if (!isStoreAllowed(interaction, settings.staffRoleIds)) {
+        if (!memberHasAnyRole(interaction.member, storeConfig.staffRoleIds)) {
             await InteractionHelper.safeReply(interaction, {
-                content: noAccessMessage(settings.staffRoleIds),
+                content: "❌ You don't have the required role to use this command.",
                 flags: MessageFlags.Ephemeral,
             });
             return;
@@ -75,7 +71,7 @@ export default {
         const notes = [];
 
         // 2. Buyer role.
-        const buyer = await assignBuyerRole(guild, customer.id, settings.buyerRoleId).catch((error) => {
+        const buyer = await assignBuyerRole(guild, customer.id).catch((error) => {
             logger.error('sale: buyer role failed:', error);
             return { status: 'failed', role: null };
         });
@@ -116,9 +112,9 @@ export default {
             footer: storeFooter(),
         };
 
-        if (settings.salesLogChannelId) {
+        if (storeConfig.salesLogChannelId) {
             try {
-                const logChannel = await getTextChannel(guild, settings.salesLogChannelId);
+                const logChannel = await getTextChannel(guild, storeConfig.salesLogChannelId);
                 if (!logChannel) throw new Error('Sales log channel not found');
                 const logMessage = await logChannel.send({ embeds: [logEmbed], allowedMentions: { parse: [] } });
                 await updateSale(client, guild.id, sale.id, {
@@ -131,7 +127,7 @@ export default {
                 notes.push('Could not post in the sales log channel');
             }
         } else {
-            notes.push('No sales log channel set (use /store setup)');
+            notes.push('No sales log channel set (SALES_LOG_CHANNEL_ID)');
         }
 
         // 5. Ask the customer for a review.

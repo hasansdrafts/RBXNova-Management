@@ -8,7 +8,6 @@ import { logger } from '../utils/logger.js';
 const reviewsKey = (guildId) => `guild:${guildId}:store:reviews`;
 const salesKey = (guildId) => `guild:${guildId}:store:sales`;
 const vouchesKey = (guildId) => `guild:${guildId}:store:vouches`;
-const settingsKey = (guildId) => `guild:${guildId}:store:settings`;
 
 // ---------------------------------------------------------------------------
 // Storage helpers
@@ -246,107 +245,6 @@ export function voidVouch(client, guildId, vouchId, meta) {
 }
 
 // ---------------------------------------------------------------------------
-// Per-server settings
-// ---------------------------------------------------------------------------
-
-export const SETTING_KEYS = [
-    'staffRoleIds',
-    'reviewRoleIds',
-    'reviewChannelId',
-    'salesLogChannelId',
-    'vouchChannelId',
-    'buyerRoleId',
-];
-
-const EMPTY_SETTINGS = {
-    staffRoleIds: [],
-    reviewRoleIds: [],
-    reviewChannelId: '',
-    salesLogChannelId: '',
-    vouchChannelId: '',
-    buyerRoleId: '',
-};
-
-async function readSavedSettings(client, guildId) {
-    if (!client?.db || typeof client.db.get !== 'function') {
-        throw new Error('Database is unavailable');
-    }
-    const raw = await client.db.get(settingsKey(guildId), {});
-    const data = unwrapReplitData(raw);
-    return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
-}
-
-/**
- * The settings a server is actually using: its saved choices, falling back to the
- * built-in defaults for the home server (other servers have no defaults).
- */
-export async function getStoreSettings(client, guildId) {
-    const base = guildId === storeConfig.homeGuildId ? storeConfig.homeDefaults : EMPTY_SETTINGS;
-
-    let saved = {};
-    try {
-        saved = await readSavedSettings(client, guildId);
-    } catch (error) {
-        logger.error(`Could not load store settings for guild ${guildId} (using defaults):`, error);
-    }
-
-    const settings = {};
-    for (const key of SETTING_KEYS) {
-        const value = saved[key] !== undefined ? saved[key] : base[key];
-        settings[key] = Array.isArray(value) ? [...value] : value;
-    }
-    return settings;
-}
-
-/** Saves only the settings given in `patch`; everything else is left as it was. */
-export function saveStoreSettings(client, guildId, patch) {
-    return withLock(settingsKey(guildId), async () => {
-        const merged = { ...(await readSavedSettings(client, guildId)) };
-        for (const key of SETTING_KEYS) {
-            if (patch[key] !== undefined) merged[key] = patch[key];
-        }
-        if (!(await client.db.set(settingsKey(guildId), merged))) {
-            throw new Error('Database rejected the write');
-        }
-        return merged;
-    });
-}
-
-/** Forgets all saved choices so the server goes back to its defaults. */
-export function resetStoreSettings(client, guildId) {
-    return withLock(settingsKey(guildId), async () => {
-        if (!(await client.db.set(settingsKey(guildId), {}))) {
-            throw new Error('Database rejected the write');
-        }
-    });
-}
-
-/**
- * Whether the person who ran the command may use a role-gated command.
- * - With roles set: they need one of those roles (@everyone counts as everyone).
- * - With no roles set: only people with Manage Server can use it.
- */
-export function isStoreAllowed(interaction, roleIds) {
-    if (!roleIds || roleIds.length === 0) {
-        return Boolean(interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild));
-    }
-
-    const roles = interaction.member?.roles;
-    return roleIds.some(
-        (roleId) =>
-            roleId === interaction.guildId ||
-            (Array.isArray(roles) ? roles.includes(roleId) : Boolean(roles?.cache?.has(roleId))),
-    );
-}
-
-/** The message to show when `isStoreAllowed` says no. */
-export function noAccessMessage(roleIds) {
-    return roleIds && roleIds.length > 0
-        ? "❌ You don't have the required role to use this command."
-        : "❌ This isn't set up yet. A server admin (Manage Server) needs to run `/store setup` first.";
-}
-
-// ---------------------------------------------------------------------------
 // Roles and channels
 // ---------------------------------------------------------------------------
 
@@ -379,8 +277,8 @@ async function giveRole(guild, userId, role) {
     }
 }
 
-export async function assignBuyerRole(guild, userId, buyerRoleId = '') {
-    const role = findRole(guild, { roleId: buyerRoleId, names: storeConfig.buyerRoleNames });
+export async function assignBuyerRole(guild, userId) {
+    const role = findRole(guild, { roleId: storeConfig.buyerRoleId, names: storeConfig.buyerRoleNames });
     const status = await giveRole(guild, userId, role);
     return { status, role };
 }
@@ -403,9 +301,9 @@ export async function getTextChannel(guild, channelId) {
     return channel?.isTextBased() ? channel : null;
 }
 
-export async function getVouchChannel(guild, vouchChannelId = '') {
-    if (vouchChannelId) {
-        return getTextChannel(guild, vouchChannelId);
+export async function getVouchChannel(guild) {
+    if (storeConfig.vouchChannelId) {
+        return getTextChannel(guild, storeConfig.vouchChannelId);
     }
     const hint = storeConfig.vouchChannelNameHint.toLowerCase();
     return (
